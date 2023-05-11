@@ -64,11 +64,14 @@ def delete_contact(contact_id: int, db: Session = Depends(get_db)):
     return crud.delete_contact(db=db, db_contact=db_contact)
 
 
-@app.get("/contacts/search", response_model=List[schemas.Contact])
+@app.get("/contacts/search/", response_model=List[schemas.Contact])
 def search_contacts(query: str, db: Session = Depends(get_db)):
-    return crud.search_contacts(db=db, query=query)
+    contacts = crud.search_contacts(db, query=query)
+    return contacts
 
 
-@app.get("/contacts/birthdays", response_model=List[schemas.Contact])
-def get_upcoming_birthdays(db: Session = Depends(get_db)):
-    return crud.get_upcoming_birthdays(db=db)
+@app.get("/contacts/birthday/", response_model=List[schemas.Contact])
+def birthday_contacts(db: Session = Depends(get_db)):
+    contacts = crud.birthday_contacts(db)
+    return contacts
+

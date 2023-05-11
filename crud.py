@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func
-from datetime import date, timedelta
+from datetime import date
 
 import models
 import schemas
@@ -13,7 +12,7 @@ def create_contact(db: Session, contact: schemas.ContactCreate):
         email=contact.email,
         phone=contact.phone,
         birthday=contact.birthday,
-        additional_data=contact.additional_data
+        additional_data=contact.additional_data,
     )
     db.add(db_contact)
     db.commit()
@@ -29,7 +28,9 @@ def get_contact(db: Session, contact_id: int):
     return db.query(models.Contact).get(contact_id)
 
 
-def update_contact(db: Session, db_contact: models.Contact, contact: schemas.ContactUpdate):
+def update_contact(
+    db: Session, db_contact: models.Contact, contact: schemas.ContactUpdate
+):
     for field in contact.dict(exclude_unset=True):
         setattr(db_contact, field, contact.dict()[field])
     db.commit()
@@ -44,23 +45,22 @@ def delete_contact(db: Session, db_contact: models.Contact):
 
 
 def search_contacts(db: Session, query: str):
-    query = f"%{query}%"
-    return db.query(models.Contact).filter(
-        or_(
-            func.lower(models.Contact.name).ilike(func.lower(query)),
-            func.lower(models.Contact.surname).ilike(func.lower(query)),
-            func.lower(models.Contact.email).ilike(func.lower(query))
+    return (
+        db.query(models.Contact)
+        .filter(
+            models.Contact.name.ilike(f"%{query}%")
+            | models.Contact.surname.ilike(f"%{query}%")
+            | models.Contact.email.ilike(f"%{query}%")
         )
-    ).all()
+        .all()
+    )
 
 
-def get_upcoming_birthdays(db: Session):
+def birthday_contacts(db: Session):
     today = date.today()
-    next_week = today + timedelta(days=7)
-    return db.query(models.Contact).filter(
-        and_(
-            func.extract('month', models.Contact.birthday) == today.month,
-            func.extract('day', models.Contact.birthday) >= today.day,
-            func.extract('day', models.Contact.birthday) <= next_week.day
-        )
-    ).all()
+    next_week = today.replace(day=today.day + 7)
+    return (
+        db.query(models.Contact)
+        .filter(models.Contact.birthday >= today, models.Contact.birthday <= next_week)
+        .all()
+    )
